@@ -1,0 +1,88 @@
+
+h1 {
+    margin: 0px;
+    padding: 2px;
+    font-family: 'Gill Sans';
+    text-align: center;
+    background-image: linear-gradient(to right,brown, lightgreen);
+    font-style: oblique;
+    color: whitesmoke;
+    stroke: black;
+    stroke-width: 1;
+    font-size: 48px;
+    font-weight: 800;
+  }
+body {
+    margin: 0;
+    background-color: lightblue;
+    font-family: 'Yanone Kaffeesatz', sans-serif;
+    font-weight: 200;
+    font-size: 17px;
+  }
+  #map-holder {
+    width: 100vw;
+    height: 90vh;
+    fill: transparent;
+  }
+  svg rect {
+    fill: transparent;   /* map background colour */
+  }
+  .country{
+    stroke:black; /* country border colour */
+    stroke-width: 0.5; /* country border width */
+  }
+  .country-on{
+    fill: yellow;   /* highlight colour for selected country */
+  }
+  .countryLabel{
+    display: none;   /* hide all country labels by default */
+  }
+  .countryName{
+    fill: yellow;   /* country label text colour */
+  }
+  .countryLabelBg{
+    fill: black;   /* country label background colour */
+  }
+
+  #footerSlideContainer {
+    position: fixed;
+    bottom:0;
+    width: 100%;
+  }
+
+  #footerSlideContent {
+    width: 100%;
+    height: 0vh;
+    background: azure;
+    
+    font-size: 0.8em;
+    border: none;
+    font-family: DejaVuSansBook, Sans-Serif;
+  }
+  #footerSlideHeader {
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(to right,brown, lightgreen);
+      color: white;
+      font-size:0;
+  }
+    #header_country, #header_region, #header_rank, #header_score {
+        display: inline-block; 
+        *display: inline; 
+        zoom: 1; 
+        vertical-align: top;   
+        text-align: center;
+        vertical-align: middle;
+        font-weight: bold; 
+        margin:auto;
+        padding: auto;
+    }
+    #header_country {width: 25%; height: 100%; font-size: 48px; }
+    #header_region {width: 25%; height: 100%; font-size: 32px; vertical-align: middle;}
+    #header_rank {width: 25%; height: 100%; font-size: 32px; }
+    #header_score{width: 25%; height: 100%; font-size: 32px;}
+
+  #footerSlideText {
+      color: aliceblue;
+    padding: 15px 10px 25px 25px;
+  }
