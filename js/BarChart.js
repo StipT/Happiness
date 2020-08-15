@@ -25,9 +25,6 @@ document.getElementById("footer_graph").innerHTML = "";
         .append("g")
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
-    // get the data
-    d3.json("data", function (error, dataSource) {
-        if (error) throw error;
 
         // Scale the range of the data in the domains
         x.domain(data.map(function (d) {
@@ -100,5 +97,4 @@ document.getElementById("footer_graph").innerHTML = "";
             .attr("y", -width / 2)
             .attr("x", -height / 2)
             .text("Happiness Score");
-    });
 }
