@@ -15,7 +15,7 @@
 </head>
 
 <body>
-    <h1 id="header_title">Happiness in the <b>World</b></h1>
+    <h1 id="header_title">Happiness in the World</h1>
     <div id="footerSlideContainer">
         <div id="footerSlideContent">
             <div id="footerSlideHeader">
@@ -119,7 +119,7 @@ document.body.style.cursor = "pointer";
                     document.getElementById("header_flag").src = "https://www.countryflags.io/" + d.properties.wb_a2 + "/flat/64.png";
                     $('#footerSlideContent').animate({ height: '8vh' });
                     d3.select(this).classed("country-on", true);
-                    if (d.properties.Rank != undefined) BarChart("#footer_graph", getDataForBarChart("data/happiness.csv", d.properties.Rank), d.properties.name);
+                    if (d.properties.Rank != undefined) initBarChart("data/happiness.csv", d.properties);
                     else {
                         d3.select("#footer_graph").select("svg").remove();
                         document.getElementById("footer_graph").innerHTML = "Data for " + d.properties.name + " is unavailable.";
@@ -206,15 +206,15 @@ document.body.style.cursor = "pointer";
             }
         });
     });
-    function getDataForBarChart(csvData, countryRank) {
+    function initBarChart(csvData, country) {
         var countriesArray = [];
         d3.csv(csvData,
             function (csv) {
                 var temp;
                 for (i = 0; i < 11; i++) {
-                    if (countryRank <= 10) temp = csv[i];
-                    else if (countryRank >= 150) temp = csv[144 + i];
-                    else temp = csv[countryRank - 6 + i];
+                    if (country.Rank <= 10) temp = csv[i];
+                    else if (country.Rank >= 150) temp = csv[144 + i];
+                    else temp = csv[country.Rank - 6 + i];
 
                     countriesArray.push({
                         "country": temp.Country,
@@ -223,8 +223,8 @@ document.body.style.cursor = "pointer";
                         "flag": "https://www.countryflags.io/" + temp.Abrv + "/shiny/64.png"
                     });
                 }
+                BarChart("#footer_graph", countriesArray, country.name);
             });
-        return countriesArray;
     }
 
     function initRadarChart(csvData, country) {
