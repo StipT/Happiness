@@ -6,12 +6,10 @@
     <title>World Happiness</title>
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/1.3.0/d3-legend.js" charset="utf-8"></script>
     <script src="js/BarChart.js"></script>
     <script src="js/RadarChart.js"></script>
     <link rel="stylesheet" type="text/css" href="index.css">
     <link rel="icon" href="world_icon_48dp.png">
-
 </head>
 
 <body>
@@ -40,260 +38,317 @@
             </div>
         </div>
     </div>
-    <div id="map-holder"></div>
+    <div id="map-holder">
+        <div id="infoPanel">
+            <svg id="infoIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48px" height="48px">
+                <path d="M0 0h24v24H0z" fill="none" />
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+            <p id="infoText"><br>After clicking on a country, make sure to expand bottom drawer for more information on
+                happiness factors and how do they compare to local region and the world.<br><br><a
+                    href="https://github.com/StipT/Happiness">Tomislav Stipanić, 2020</a></p>
+        </div>
+    </div>
     <script type="text/javascript">
 
-document.body.style.cursor = "pointer";
-    var tooltip = d3.select('body').append('div')
-        .attr('class', 'hidden tooltip');
+        document.body.style.cursor = "pointer";
+        var tooltip = d3.select('body').append('div')
+            .attr('class', 'hidden tooltip');
 
-    var title = "Happiness in  ";
-    document.h1 = title;
+        var title = "Happiness in  ";
+        document.h1 = title;
+        // DEFINE VARIABLES
+        // Define size of map group
+        // Full world map is 2:1 ratio
+        // Using 12:5 because we will crop top and bottom of map
+        w = 2000;
+        h = 1200;
 
-    // DEFINE VARIABLES
-    // Define size of map group
-    // Full world map is 2:1 ratio
-    // Using 12:5 because we will crop top and bottom of map
-    w = 2400;
-    h = 1000;
+        var minZoom = 1;
+        var maxZoom = 1;
 
-    var projection = d3
-        .geoEquirectangular()
-        .center([50, 15]) // set centre to further North
-        .scale([w / (2.5 * Math.PI)]) // scale to fit group width
-        .translate([w / 2, h / 2, 5]); // ensure centred in group
+        var projection = d3
+            .geoEquirectangular()
+            .center([20, 10]) // set centre to further North
+            .scale([w / (2 * Math.PI)]) // scale to fit group width
+            .translate([w / 2, h / 2, 0]); // ensure centred in group
 
-    var path = d3
-        .geoPath()
-        .projection(projection);
+        var path = d3
+            .geoPath()
+            .projection(projection);
+        // apply zoom to countriesGroup
+        function zoomed() {
+            t = d3
+                .event
+                .transform;
+            countriesGroup.attr(
+                "transform", "translate(" + [t.x, t.y] + ")scale(" + t.k + ")");
+        }
 
-    var svg = d3
-        .select("#map-holder")
-        .append("svg")
-        // set to the same size as the "map-holder" div
-        .attr("width", $("#map-holder").width())
-        .attr("height", $("#map-holder").height());
 
-    d3.json('data/happiness.json',
-        function (json) {
-            countriesGroup = svg
-                .append("g")
-                .attr("id", "map")
-                ;
-            // add a background rectangle
-            countriesGroup
-                .append("rect")
-                .attr("x", 0)
-                .attr("y", 0)
-                .attr("width", w)
-                .attr("height", h)
-                ;
-            // draw a path for each feature/country
-            countries = countriesGroup
-                .selectAll("path")
-                .data(json.features)
-                .enter()
-                .append("path")
-                .attr("d", path)
-                .attr("id", function (d, i) {
-                    return "country" + d.properties.iso_a3;
-                })
-                .attr("class", "country")
-                // add a mouseover action to show name label for feature/country
-                .attr("fill", function (d, i) {
-                    if (d.properties.Score == undefined) {
-                        return 'grey';
-                    } else {
-                        return color(d.properties.Score);
-                    }
-                })
-                // add an onclick action to zoom into clicked country and setup graphs and values
-                .on("click", function (d, i) {
-                    if (open === true) closeFooter();
-                    document.getElementById("header_title").innerHTML = title + d.properties.name;
-                    d3.selectAll(".country").classed("country-on", false);
-                    document.getElementById("header_country").innerHTML = d.properties.name;
-                    document.getElementById("score_value").innerHTML = d.properties.Score;
-                    document.getElementById("rank_value").innerHTML = "#" + d.properties.Rank;
-                    document.getElementById("region_value").innerHTML = d.properties.subregion;
-                    document.getElementById("header_flag").src = "https://www.countryflags.io/" + d.properties.wb_a2 + "/flat/64.png";
-                    $('#footerSlideContent').animate({ height: '8vh' });
-                    d3.select(this).classed("country-on", true);
-                    if (d.properties.Rank != undefined) initBarChart("data/happiness.csv", d.properties);
-                    else {
-                        d3.select("#footer_graph").select("svg").remove();
-                        document.getElementById("footer_graph").innerHTML = "Data for " + d.properties.name + " is unavailable.";
-                    }
-                    initRadarChart("data/happiness.csv", d.properties);
-                })
-                // country highlight on hover
-                .on("mouseover", function (d, i) {
-                    d3.selectAll(".country").classed("country-hover", false);
-                    d3.select(this).classed("country-hover", true);
-                })
-                //country name display on country hover located on mouse cursor
-                .on('mousemove', function (d) {
-                    var mouse = d3.mouse(svg.node()).map(function (d) {
-                        return parseInt(d);
+        // Define map zoom behaviour
+        var zoom = d3
+            .zoom()
+            .on("zoom", zoomed)
+            .scaleExtent([minZoom, maxZoom]) // set min/max extent of zoom
+            .translateExtent([[0, 0], [w, h]]); // set extent of panning
+
+        var svg = d3
+            .select("#map-holder")
+            .append("svg")
+            // set to the same size as the "map-holder" div
+            .attr("width", $("#map-holder").width())
+            .attr("height", $("#map-holder").height());
+
+
+        d3.json('data/happiness.json',
+            function (json) {
+                countriesGroup = svg
+                    .append("g")
+                    .attr("id", "map");
+
+                // draw a path for each feature/country
+                countries = countriesGroup
+                    .selectAll("path")
+                    .data(json.features)
+                    .enter()
+                    .append("path")
+                    .attr("d", path)
+                    .attr("id", function (d, i) {
+                        return "country" + d.properties.iso_a3;
+                    })
+                    .attr("class", "country")
+                    // add a mouseover action to show name label for feature/country
+                    .attr("fill", function (d, i) {
+                        if (d.properties.Score == undefined) {
+                            return 'grey';
+                        } else {
+                            return color(d.properties.Score);
+                        }
+                    })
+                    // add an onclick action to zoom into clicked country and setup graphs and values
+                    .on("click", function (d, i) {
+                        if (open === true) closeFooter();
+                        document.getElementById("header_title").innerHTML = title + d.properties.name;
+                        d3.selectAll(".country").classed("country-on", false);
+                        document.getElementById("header_country").innerHTML = d.properties.name;
+                        document.getElementById("score_value").innerHTML = d.properties.Score;
+                        document.getElementById("rank_value").innerHTML = "#" + d.properties.Rank;
+                        document.getElementById("region_value").innerHTML = d.properties.subregion;
+                        document.getElementById("header_flag").src = "https://www.countryflags.io/" + d.properties.wb_a2 + "/flat/64.png";
+                        $('#footerSlideContent').animate({ height: '8vh' });
+                        d3.select(this).classed("country-on", true);
+                        if (d.properties.Rank != undefined) initBarChart("data/happiness.csv", d.properties);
+                        else {
+                            d3.select("#footer_graph").select("svg").remove();
+                            document.getElementById("footer_graph").innerHTML = "Data for " + d.properties.name + " is unavailable.";
+                        }
+                        initRadarChart("data/happiness.csv", d.properties);
+                    })
+                    // country highlight on hover
+                    .on("mouseover", function (d, i) {
+                        d3.selectAll(".country").classed("country-hover", false);
+                        d3.select(this).classed("country-hover", true);
+                    })
+                    //country name display on country hover located on mouse cursor
+                    .on('mousemove', function (d) {
+                        var mouse = d3.mouse(svg.node()).map(function (d) {
+                            return parseInt(d);
+                        });
+                        tooltip.classed('hidden', false)
+                            .attr('style', 'left:' + (mouse[0] + 15) +
+                                'px; top:' + (mouse[1] - 35) + 'px')
+                            .html(d.properties.name);
+                    })
+                    .on('mouseout', function () {
+                        tooltip.classed('hidden', true);
+                        d3.select(this).classed("country-hover", false);
                     });
-                    tooltip.classed('hidden', false)
-                        .attr('style', 'left:' + (mouse[0] + 15) +
-                            'px; top:' + (mouse[1] - 35) + 'px')
-                        .html(d.properties.name);
-                })
-                .on('mouseout', function () {
-                    tooltip.classed('hidden', true);
-                    d3.select(this).classed("country-hover", false);
-                });
+                // Define a "min zoom"
+                minZoom = Math.max($("#map-holder").width() / w, $("#map-holder").height() / h);
+                // Define a "max zoom" 
+                maxZoom = 1;
+                //apply these limits of 
+                // define X and Y offset for centre of map
+                midX = ($("#map-holder").width() - (minZoom * w)) / 2;
+                midY = ($("#map-holder").height() - (minZoom * h)) / 2;
+                // change zoom transform to min zoom and centre offsets
+                svg.call(zoom.transform, d3.zoomIdentity.translate(midX, midY).scale(minZoom));
+
+            }
+
+        );
+
+        var color = d3.scaleLinear()
+            .range(['#0B3954', '#E0FF4F'])
+            .domain([2, 8]);
+
+        $(window).resize(function () {
+            // Resize SVG
+            svg
+                .attr("width", $("#map-holder").width())
+                .attr("height", $("#map-holder").height());
+            initiateZoom();
+        });
+
+        function initiateZoom() {
+            // Define a "min zoom"
+            minZoom = Math.max($("#map-holder").width() / w, $("#map-holder").height() / h);
+            // Define a "max zoom" 
+            maxZoom = 1;
+            //apply these limits of 
+            // define X and Y offset for centre of map
+            midX = ($("#map-holder").width() - (minZoom * w)) / 2;
+            midY = ($("#map-holder").height() - (minZoom * h)) / 2;
+            // change zoom transform to min zoom and centre offsets
+            svg.call(zoom.transform, d3.zoomIdentity.translate(midX, midY).scale(minZoom));
+
 
         }
 
-    );
+        var open = false;
+        var halfOpen = false;
 
-    var color = d3.scaleLinear()
-        .range(['#0B3954', '#E0FF4F'])
-        .domain([2, 8]);
+        function closeFooter() {
+            $('#footerSlideContent').animate({ height: '8vh' }, 300);
+            $('#footerSlideHeader').animate({ height: '100%' }, 300);
+            $(this).css('backgroundPosition', 'top left');
+            open = false;
+        }
 
-    $(window).resize(function () {
-        // Resize SVG
-        svg
-            .attr("width", $("#map-holder").width())
-            .attr("height", $("#map-holder").height());
-    });
+        function openFooter() {
+            $('#footerSlideContent').animate({ height: '60vh' }, 500);
+            $('#footerSlideHeader').animate({ height: '20%' }, 300);
+            $(this).css('backgroundPosition', 'bottom left');
+            open = true;
+        }
 
-
-    var open = false;
-    var halfOpen = false;
-
-    function closeFooter() {
-        $('#footerSlideContent').animate({ height: '8vh' }, 300);
-        $('#footerSlideHeader').animate({ height: '100%' }, 300);
-        $(this).css('backgroundPosition', 'top left');
-        open = false;
-    }
-
-    function openFooter() {
-        $('#footerSlideContent').animate({ height: '60vh' }, 400);
-        $('#footerSlideHeader').animate({ height: '20%' }, 400);
-        $(this).css('backgroundPosition', 'bottom left');
-        open = true;
-    }
-
-    $(function () {
-        $('#footerSlideContent').click(function () {
-            if (open === false) {
-                openFooter();
-            } else {
-                closeFooter();
-            }
-        });
-
-        $('#footerSlideContent').mouseover(function () {
-            if (open == false && halfOpen == false) {
-                $('#footerSlideContent').animate({ height: '10vh' }, 200);
-                $('#footerSlideHeader').animate({ height: '100%' }, 200);
-                $(this).css('backgroundPosition', 'bottom left');
-                halfOpen = true;
-            }
-        });
-
-        $('#map-holder').mouseover(function () {
-            if (open == false && halfOpen == true) {
-                $('#footerSlideContent').animate({ height: '8vh' }, 200);
-                $('#footerSlideHeader').animate({ height: '100%' }, 200);
-                $(this).css('backgroundPosition', 'bottom left');
-                halfOpen = false;
-            }
-        });
-    });
-    function initBarChart(csvData, country) {
-        var countriesArray = [];
-        d3.csv(csvData,
-            function (csv) {
-                var temp;
-                for (i = 0; i < 11; i++) {
-                    if (country.Rank <= 10) temp = csv[i];
-                    else if (country.Rank >= 150) temp = csv[144 + i];
-                    else temp = csv[country.Rank - 6 + i];
-
-                    countriesArray.push({
-                        "country": temp.Country,
-                        "rank": temp.Rank,
-                        "rating": temp.Rating,
-                        "flag": "https://www.countryflags.io/" + temp.Abrv + "/shiny/64.png"
-                    });
+        $(function () {
+            $('#footerSlideContent').click(function () {
+                if (open === false) {
+                    openFooter();
+                } else {
+                    closeFooter();
                 }
-                BarChart("#footer_graph", countriesArray, country.name);
             });
-    }
 
-    function initRadarChart(csvData, country) {
-        var countriesArray = [];
-        d3.csv(csvData, function (csv) {
-            var subregionCountries = csv
-                .filter(function (d) { return country.subregion == d.Subregion });
-
-            subregionEconomy = d3.mean(subregionCountries, function (d) { return d.Economy });
-            subregionFamily = d3.mean(subregionCountries, function (d) { return d.Family });
-            subregionHealth = d3.mean(subregionCountries, function (d) { return d.Health });
-            subregionFreedom = d3.mean(subregionCountries, function (d) { return d.Freedom });
-            subregionGenerosity = d3.mean(subregionCountries, function (d) { return d.Generosity });
-            subregionGovenment = d3.mean(subregionCountries, function (d) { return d.Government });
-
-
-            var data = [
-                {
-                    name: country.name,
-                    axes: [
-                        { axis: 'Economy', value: country.Economy_GDP / 1.87076568603516 * 100 },
-                        { axis: 'Health', value: country["Health."] / 0.949492394924164 * 100 },
-                        { axis: 'Freedom', value: country.Freedom / 0.658248662948608 * 100 },
-                        { axis: 'Generosity', value: country.Generosity / 0.838075160980225 * 100 },
-                        { axis: 'Family', value: country.Family / 1.6105740070343 * 100 },
-                        { axis: 'Government Trust', value: country["Trust_Government_Corruption."] / 0.46430778503418 * 100 }
-                    ]
-                },
-                {
-                    name: country.subregion,
-                    axes: [
-                        { axis: 'Economy', value: subregionEconomy / 1.87076568603516 * 100 },
-                        { axis: 'Health', value: subregionHealth / 0.949492394924164 * 100 },
-                        { axis: 'Freedom', value: subregionFreedom / 0.658248662948608 * 100 },
-                        { axis: 'Generosity', value: subregionGenerosity / 0.838075160980225 * 100 },
-                        { axis: 'Family', value: subregionFamily / 1.6105740070343 * 100 },
-                        { axis: 'Goverment Trust', value: subregionGovenment / 0.46430778503418 * 100 }
-                    ]
-                },
-                {
-                    name: 'World',
-                    axes: [
-                        { axis: 'Economy', value: 0.984718202 / 1.87076568603516 * 100 },
-                        { axis: 'Health', value: 0.551340783 / 0.949492394924164 * 100 },
-                        { axis: 'Freedom', value: 0.408785973 / 0.658248662948608 * 100 },
-                        { axis: 'Generosity', value: 0.246883472 / 0.838075160980225 * 100 },
-                        { axis: 'Family', value: 1.18889775 / 1.6105740070343 * 100 },
-                        { axis: 'Goverment Trust', value: 0.123120221 / 0.46430778503418 * 100 }
-                    ]
+            $('#footerSlideContent').mouseover(function () {
+                if (open == false && halfOpen == false) {
+                    $('#footerSlideContent').animate({ height: '10vh' }, 200);
+                    $('#footerSlideHeader').animate({ height: '100%' }, 200);
+                    $(this).css('backgroundPosition', 'bottom left');
+                    halfOpen = true;
                 }
+            });
 
-            ];
+            $('#map-holder').mouseover(function () {
+                if (open == false && halfOpen == true) {
+                    $('#footerSlideContent').animate({ height: '8vh' }, 200);
+                    $('#footerSlideHeader').animate({ height: '100%' }, 200);
+                    $(this).css('backgroundPosition', 'bottom left');
+                    halfOpen = false;
+                }
+            });
 
-            var margin = { top: 90, right: 80, bottom: 50, left: 80 },
-                width = Math.min(700, window.innerWidth / 4) - margin.left - margin.right,
-                height = Math.min(width, window.innerHeight - margin.top - margin.bottom);
-
-            var radarChartOptions = {
-                w: 600,
-                h: 300,
-                margin: margin,
-                levels: 5,
-                color: d3.scaleOrdinal().range(["#FF6663", "#26AF32", "#762712"]),
-                format: '.0f'
-            };
-
-            RadarChart("#footer_radar", data, radarChartOptions);
+            $('#infoPanel').mouseover(function () {
+                $('#infoPanel').css('background', '#FEFFFE');
+                $('#infoIcon').css('fill', 'transparent');
+                $('#infoText').css('visibility', 'visible');
+            });
+            $('#infoPanel').mouseout(function () {
+                $('#infoPanel').css('background', 'transparent');
+                $('#infoIcon').css('fill', '#2e2b2b');
+                $('#infoText').css('visibility', 'hidden');
+            });
         });
-    }
+
+        function initBarChart(csvData, country) {
+            var countriesArray = [];
+            d3.csv(csvData,
+                function (csv) {
+                    var temp;
+                    for (i = 0; i < 11; i++) {
+                        if (country.Rank <= 10) temp = csv[i];
+                        else if (country.Rank >= 150) temp = csv[144 + i];
+                        else temp = csv[country.Rank - 6 + i];
+
+                        countriesArray.push({
+                            "country": temp.Country,
+                            "rank": temp.Rank,
+                            "rating": temp.Rating,
+                            "flag": "https://www.countryflags.io/" + temp.Abrv + "/shiny/64.png"
+                        });
+                    }
+                    BarChart("#footer_graph", countriesArray, country.name);
+                });
+        }
+
+        function initRadarChart(csvData, country) {
+            var countriesArray = [];
+            d3.csv(csvData, function (csv) {
+                var subregionCountries = csv
+                    .filter(function (d) { return country.subregion == d.Subregion });
+                subregionEconomy = d3.mean(subregionCountries, function (d) { return d.Economy });
+                subregionFamily = d3.mean(subregionCountries, function (d) { return d.Family });
+                subregionHealth = d3.mean(subregionCountries, function (d) { return d.Health });
+                subregionFreedom = d3.mean(subregionCountries, function (d) { return d.Freedom });
+                subregionGenerosity = d3.mean(subregionCountries, function (d) { return d.Generosity });
+                subregionGovenment = d3.mean(subregionCountries, function (d) { return d.Government });
+
+
+                var data = [
+                    {
+                        name: country.name,
+                        axes: [
+                            { axis: 'Economy', value: country.Economy_GDP / 1.87076568603516 * 100 },
+                            { axis: 'Health', value: country["Health."] / 0.949492394924164 * 100 },
+                            { axis: 'Freedom', value: country.Freedom / 0.658248662948608 * 100 },
+                            { axis: 'Generosity', value: country.Generosity / 0.838075160980225 * 100 },
+                            { axis: 'Family', value: country.Family / 1.6105740070343 * 100 },
+                            { axis: 'Government Trust', value: country["Trust_Government_Corruption."] / 0.46430778503418 * 100 }
+                        ]
+                    },
+                    {
+                        name: country.subregion,
+                        axes: [
+                            { axis: 'Economy', value: subregionEconomy / 1.87076568603516 * 100 },
+                            { axis: 'Health', value: subregionHealth / 0.949492394924164 * 100 },
+                            { axis: 'Freedom', value: subregionFreedom / 0.658248662948608 * 100 },
+                            { axis: 'Generosity', value: subregionGenerosity / 0.838075160980225 * 100 },
+                            { axis: 'Family', value: subregionFamily / 1.6105740070343 * 100 },
+                            { axis: 'Goverment Trust', value: subregionGovenment / 0.46430778503418 * 100 }
+                        ]
+                    },
+                    {
+                        name: 'World',
+                        axes: [
+                            { axis: 'Economy', value: 0.984718202 / 1.87076568603516 * 100 },
+                            { axis: 'Health', value: 0.551340783 / 0.949492394924164 * 100 },
+                            { axis: 'Freedom', value: 0.408785973 / 0.658248662948608 * 100 },
+                            { axis: 'Generosity', value: 0.246883472 / 0.838075160980225 * 100 },
+                            { axis: 'Family', value: 1.18889775 / 1.6105740070343 * 100 },
+                            { axis: 'Goverment Trust', value: 0.123120221 / 0.46430778503418 * 100 }
+                        ]
+                    }
+
+                ];
+
+                var margin = { top: 90, right: 80, bottom: 50, left: 80 },
+                    width = Math.min(700, window.innerWidth / 4) - margin.left - margin.right,
+                    height = Math.min(width, window.innerHeight - margin.top - margin.bottom);
+
+                var radarChartOptions = {
+                    w: 600,
+                    h: 300,
+                    margin: margin,
+                    levels: 5,
+                    color: d3.scaleOrdinal().range(["#FF6663", "#26AF32", "#762712"]),
+                    format: '.0f'
+                };
+                RadarChart("#footer_radar", data, radarChartOptions);
+            });
+        }
 
     </script>
 </body>

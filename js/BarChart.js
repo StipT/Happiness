@@ -22,6 +22,9 @@ document.getElementById("footer_graph").innerHTML = "";
     var svg = d3.select(id).append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", width + margin.top + margin.bottom)
+        .attr('viewBox','0 0 '+ (width + margin.top + margin.bottom) + ' '+ (width + margin.top + margin.bottom))
+		.attr('preserveAspectRatio','xMinYMin')
+
         .append("g")
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
